@@ -53,7 +53,7 @@ def sb_loss(input_values, sb, gamma,pt,target,alpha):
 
 class SBLoss(nn.Module):
     def __init__(self, weight=None, alpha=10000., gamma=0.):
-        super(sB_FocalLoss, self).__init__()
+        super(SBLoss, self).__init__()
         assert alpha > 0
         self.alpha = alpha
         self.epsilon = 0.0001
