@@ -26,11 +26,11 @@ parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18')
 #     ' | '.join(model_names) +
 #     ' (default: resnet32)')
 parser.add_argument('--num_classes', default=200, type=int, help='number of classes ')
-parser.add_argument('--loss_type', default="IBFocal", type=str, help='loss type')
+parser.add_argument('--loss_type', default="SB", type=str, help='loss type')
 parser.add_argument('--imb_type', default="exp", type=str, help='imbalance type')
 parser.add_argument('--imb_factor', default=0.01, type=float, help='imbalance factor')
 parser.add_argument('--train_rule', default='Reweight', type=str, help='data sampling strategy for train loader')
-parser.add_argument('--start_ib_epoch', default=0, type=int, help='start epoch for SB Loss')
+parser.add_argument('--start_sb_epoch', default=0, type=int, help='start epoch for SB Loss')
 parser.add_argument('--rand_number', default=0, type=int, help='fix random number for data sampling')
 parser.add_argument('--exp_str', default='0', type=str, help='number to indicate which experiment it is')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
@@ -209,7 +209,7 @@ def main_worker(gpu, ngpus_per_node, args):
         else:
             warnings.warn('Sample rule is not listed')
 
-        criterion_ib = None
+        criterion_sb = None
         if args.loss_type == 'CE':
             criterion = nn.CrossEntropyLoss(weight=per_cls_weights).cuda(args.gpu)
         elif args.loss_type == 'LDAM':
@@ -218,16 +218,16 @@ def main_worker(gpu, ngpus_per_node, args):
             criterion = FocalLoss(weight=per_cls_weights, gamma=1).cuda(args.gpu)
         elif args.loss_type == 'SB':
             criterion = nn.CrossEntropyLoss(weight=None).cuda(args.gpu)
-            criterion_ib = SBLoss(weight=per_cls_weights, alpha=1000).cuda(args.gpu)
+            criterion_sb = SBLoss(weight=per_cls_weights, alpha=1000).cuda(args.gpu)
         else:
             warnings.warn('Loss type is not listed')
             return
 
         # train for one epoch
-        train(train_loader, model, criterion, criterion_ib, optimizer, epoch, args, log_training, tf_writer)
+        train(train_loader, model, criterion, criterion_sb, optimizer, epoch, args, log_training, tf_writer)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, criterion_ib, epoch, args, log_testing, tf_writer)
+        acc1 = validate(val_loader, model, criterion, criterion_sb, epoch, args, log_testing, tf_writer)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -248,7 +248,7 @@ def main_worker(gpu, ngpus_per_node, args):
         }, is_best)
 
 
-def train(train_loader, model, criterion, criterion_ib, optimizer, epoch, args, log, tf_writer):
+def train(train_loader, model, criterion, criterion_sb, optimizer, epoch, args, log, tf_writer):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -268,15 +268,15 @@ def train(train_loader, model, criterion, criterion_ib, optimizer, epoch, args, 
         target = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
-        if 'SB' in args.loss_type and epoch >= args.start_ib_epoch:
+        if 'SB' in args.loss_type and epoch >= args.start_sb_epoch:
             output, features = model(input)
-            loss = criterion_ib(output, target, features)
+            loss = criterion_sb(output, target, features)
             optimizer.zero_grad()
             loss.backward()
             optimizer.first_step(zero_grad=True)
 
             output, features = model(input)
-            loss = criterion_ib(output, target, features)
+            loss = criterion_sb(output, target, features)
             loss.backward()
             optimizer.second_step(zero_grad=True)
         else:
@@ -326,7 +326,7 @@ def train(train_loader, model, criterion, criterion_ib, optimizer, epoch, args, 
     tf_writer.add_scalar('lr', optimizer.param_groups[-1]['lr'], epoch)
 
 
-def validate(val_loader, model, criterion, criterion_ib, epoch, args, log=None, tf_writer=None, flag='val'):
+def validate(val_loader, model, criterion, criterion_sb, epoch, args, log=None, tf_writer=None, flag='val'):
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
@@ -344,9 +344,9 @@ def validate(val_loader, model, criterion, criterion_ib, epoch, args, log=None, 
             target = target.cuda(args.gpu, non_blocking=True)
 
             # compute output
-            if 'SB' in args.loss_type and epoch >= args.start_ib_epoch:
+            if 'SB' in args.loss_type and epoch >= args.start_sb_epoch:
                 output, features = model(input)
-                loss = criterion_ib(output, target, features)
+                loss = criterion_sb(output, target, features)
             else:
                 output, _ = model(input)
                 loss = criterion(output, target)
@@ -399,7 +399,7 @@ def validate(val_loader, model, criterion, criterion_ib, epoch, args, log=None, 
 def adjust_learning_rate(optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     epoch = epoch + 1
-    if epoch > args.start_ib_epoch and 'SB' in args.loss_type:
+    if epoch > args.start_sb_epoch and 'SB' in args.loss_type:
         lr = args.lr * 0.01
         if epoch > 90:
             lr = args.lr * 0.001
