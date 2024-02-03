@@ -17,7 +17,7 @@ parser.add_argument('--loss_type', default="SB", type=str, help='loss type')
 parser.add_argument('--imb_type', default="step", type=str, help='imbalance type')
 parser.add_argument('--imb_factor', default=0.01, type=float, help='imbalance factor')
 parser.add_argument('--train_rule', default='Reweight', type=str, help='data sampling strategy for train loader')
-parser.add_argument('--start_ib_epoch', default=130, type=int, help='start epoch for SB Loss')
+parser.add_argument('--start_sb_epoch', default=130, type=int, help='start epoch for SB Loss')
 parser.add_argument('--rand_number', default=0, type=int, help='fix random number for data sampling')
 parser.add_argument('--exp_str', default='0', type=str, help='number to indicate which experiment it is')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
