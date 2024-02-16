@@ -19,27 +19,6 @@ else: #iNat18
     num_classes = 8142
 
 
-# def sb_loss(input_values, sb,labels_onehot,input):
-#     """Computes the focal loss"""
-#     pt = torch.sum(labels_onehot * F.softmax(input, dim=-1), dim=-1)
-#     epsilon = 1
-#     loss = (input_values  + epsilon * (1 - pt))*sb
-#     return loss.mean()
-#
-# class SBLoss(nn.Module):
-#     def __init__(self, weight=None, alpha=10000.):
-#         super(SBLoss, self).__init__()
-#         assert alpha > 0
-#         self.alpha = alpha
-#         self.epsilon = 0.1
-#         self.weight = weight
-#     def forward(self, input, target, features):
-#         grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)
-#         labels_onehot = F.one_hot(target, num_classes=100).to(device=input.device,
-#                                                                            dtype=input.dtype)
-#         sb = grads * features.reshape(-1)  
-#         sb = self.alpha / (sb + self.epsilon)  
-#         return sb_loss(F.cross_entropy(input, target, reduction='none', weight=self.weight), sb,labels_onehot,input)  
 
 
 def sb_loss(input_values, sb, gamma,pt,target,alpha):
