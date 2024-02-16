@@ -201,7 +201,7 @@ def main_worker(gpu, ngpus_per_node, args):
             per_cls_weights = (1.0 - beta) / np.array(effective_num)
             per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
             per_cls_weights = torch.FloatTensor(per_cls_weights).cuda(args.gpu)
-        elif args.train_rule == 'Reweight':
+        elif args.loss_type == 'SB':
             train_sampler = None
             per_cls_weights = 1.0 / np.array(cls_num_list)
             per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
