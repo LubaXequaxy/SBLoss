@@ -37,13 +37,12 @@ else: #iNat18
 #         grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)
 #         labels_onehot = F.one_hot(target, num_classes=100).to(device=input.device,
 #                                                                            dtype=input.dtype)
-#         sb = grads * features.reshape(-1)  # 两者相乘 (fk-yk)*hl
-#         sb = self.alpha / (sb + self.epsilon)  # 变成除法，倒过来s
-#         return sb_loss(F.cross_entropy(input, target, reduction='none', weight=self.weight), sb,labels_onehot,input)  # 就是将两个相乘
+#         sb = grads * features.reshape(-1)  
+#         sb = self.alpha / (sb + self.epsilon)  
+#         return sb_loss(F.cross_entropy(input, target, reduction='none', weight=self.weight), sb,labels_onehot,input)  
 
 
 def sb_loss(input_values, sb, gamma,pt,target,alpha):
-
     epsilon=1
     gamma = 1
     pt = torch.exp(-input_values)
@@ -61,7 +60,6 @@ class SBLoss(nn.Module):
         self.gamma = gamma
 
     def forward(self, input, target, features):
-        #grads = torch.sum(torch.norm(F.softmax(input, dim=1) - F.one_hot(target, num_classes),p=2,dim=1,keepdim=True))  # N * 1
         grads = torch.sum(torch.abs(F.softmax(input, dim=1) - F.one_hot(target, num_classes)), 1)  # N * 1
         sb = grads*(features.reshape(-1))
         sb = self.alpha / (sb + self.epsilon)
